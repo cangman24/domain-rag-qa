@@ -1,0 +1,1 @@
+{"mAP": "mean Average Precision，平均精度均值", "IoU": "Intersection over Union，交并比", "GSD": "Ground Sample Distance，地面采样距离", "ONNX": "开放神经网络交换格式，用于跨框架模型部署", "SSE": "Server-Sent Events，服务器推送事件"}
