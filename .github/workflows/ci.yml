@@ -52,7 +52,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
+          # ★ 不开 pip 缓存：本 job 刻意**什么都不装**（见下一步的说明），
+          #   缓存既无收益，它的 Post 步骤还会因为找不到依赖清单而报错，
+          #   把整个 job 标记成失败 —— 一个"看起来是代码问题"的假阳性。
 
       # ★ 故意不装 torch / chromadb / fastapi。
       #   如果测试需要它们才能过，说明核心逻辑被外部依赖污染了 ——
