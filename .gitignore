@@ -72,6 +72,14 @@ reports/demo-*/
 reports/demo_*.md
 reports/ingest_manifest.json
 
+# ★ 上面几条都以仓库根为基准，匹配不到 demos/ 下的同名目录。
+#   demo 跑一次就会在 demos/reports/ 重新生成产物，必须用 ** 前缀覆盖任意层级。
+**/demo_output.txt
+**/demos/reports/
+demos/data/demo_chunks.json
+demos/data/demo_docs/
+demos/data/demo_evalrun_docs/
+
 # IDE 配置
 .idea/
 .vscode/
