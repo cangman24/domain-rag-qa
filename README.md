@@ -5,7 +5,7 @@
 >
 > **561 项单测零第三方依赖可跑（约 1 秒）**；评测报告带运行指纹与评测集哈希，**可复现**。
 
-![python](https://img.shields.io/badge/python-%3E%3D3.10-blue) ![tests](https://img.shields.io/badge/tests-561%20passing-brightgreen) ![deps](https://img.shields.io/badge/test%20deps-0-brightgreen) ![license](https://img.shields.io/badge/license-MIT-blue)
+![CI](https://github.com/cangman24/domain-rag-qa/actions/workflows/ci.yml/badge.svg) ![python](https://img.shields.io/badge/python-%3E%3D3.10-blue) ![tests](https://img.shields.io/badge/tests-561%20passing-brightgreen) ![deps](https://img.shields.io/badge/test%20deps-0-brightgreen) ![license](https://img.shields.io/badge/license-MIT-blue)
 
 ---
 
