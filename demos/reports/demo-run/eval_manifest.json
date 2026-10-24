@@ -1,0 +1,231 @@
+{
+  "run_id": "demo-run",
+  "timestamp": "2026-10-24 16:18:43",
+  "notes": "demo：验证评测链路与报告可复现性",
+  "eval_set": {
+    "n": 16,
+    "answerable": 15,
+    "unanswerable": 1,
+    "by_type": {
+      "fact": 9,
+      "term": 6,
+      "out_of_scope": 1
+    },
+    "path": "E:\\lfs\\求职\\_split\\domain-rag-qa\\demos\\data\\eval\\demo_evalrun_eval.jsonl",
+    "sha256": "45dd63e1edb24db2",
+    "path_rel": "demos\\data\\eval\\demo_evalrun_eval.jsonl"
+  },
+  "ingest": {
+    "documents": 3,
+    "chunks": 8,
+    "parents": 7,
+    "total_chars": 525,
+    "total_tokens": 312,
+    "avg_chunk_tokens": 39.0,
+    "config_fingerprint": "49b2638500d53adf",
+    "chunk_size": 64,
+    "overlap": 8,
+    "parent_size": 220,
+    "min_chunk_tokens": 5,
+    "embedding_model": "fake-hash-64d",
+    "embedded": 8,
+    "skipped_files": 0,
+    "dropped_short_chunks": 0
+  },
+  "retrieval": {
+    "top_k": 5,
+    "recall_k": 20,
+    "k_list": [
+      5,
+      3
+    ],
+    "configs": [
+      {
+        "name": "A_vector_only",
+        "use_vector": true,
+        "use_bm25": false,
+        "use_rerank": false,
+        "use_rules": false
+      },
+      {
+        "name": "B_hybrid_rrf",
+        "use_vector": true,
+        "use_bm25": true,
+        "use_rerank": false,
+        "use_rules": false
+      },
+      {
+        "name": "C_hybrid_rerank",
+        "use_vector": true,
+        "use_bm25": true,
+        "use_rerank": true,
+        "use_rules": false
+      },
+      {
+        "name": "D_hybrid_rerank_rules",
+        "use_vector": true,
+        "use_bm25": true,
+        "use_rerank": true,
+        "use_rules": true
+      }
+    ]
+  },
+  "results": [
+    {
+      "config": "A_vector_only (向量)",
+      "n": 15,
+      "overall": {
+        "hit@5": 0.9333,
+        "mrr@5": 0.7556,
+        "recall@5": 0.9333,
+        "precision@5": 0.1867,
+        "ndcg@5": 0.8016
+      },
+      "latency": {
+        "mean_ms": 0.1,
+        "p50_ms": 0.0,
+        "p95_ms": 0.1,
+        "max_ms": 0.1
+      },
+      "by_type": {
+        "fact": {
+          "hit@5": 1.0,
+          "mrr@5": 0.7037,
+          "recall@5": 1.0,
+          "precision@5": 0.2,
+          "ndcg@5": 0.7804
+        },
+        "term": {
+          "hit@5": 0.8333,
+          "mrr@5": 0.8333,
+          "recall@5": 0.8333,
+          "precision@5": 0.1667,
+          "ndcg@5": 0.8333
+        }
+      }
+    },
+    {
+      "config": "B_hybrid_rrf (向量+BM25)",
+      "n": 15,
+      "overall": {
+        "hit@5": 1.0,
+        "mrr@5": 0.9667,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 0.9754
+      },
+      "latency": {
+        "mean_ms": 0.1,
+        "p50_ms": 0.1,
+        "p95_ms": 0.2,
+        "max_ms": 0.2
+      },
+      "by_type": {
+        "fact": {
+          "hit@5": 1.0,
+          "mrr@5": 1.0,
+          "recall@5": 1.0,
+          "precision@5": 0.2,
+          "ndcg@5": 1.0
+        },
+        "term": {
+          "hit@5": 1.0,
+          "mrr@5": 0.9167,
+          "recall@5": 1.0,
+          "precision@5": 0.2,
+          "ndcg@5": 0.9385
+        }
+      }
+    },
+    {
+      "config": "C_hybrid_rerank (向量+BM25+Rerank)",
+      "n": 15,
+      "overall": {
+        "hit@5": 1.0,
+        "mrr@5": 1.0,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 1.0
+      },
+      "latency": {
+        "mean_ms": 0.4,
+        "p50_ms": 0.3,
+        "p95_ms": 1.1,
+        "max_ms": 1.1
+      },
+      "by_type": {
+        "fact": {
+          "hit@5": 1.0,
+          "mrr@5": 1.0,
+          "recall@5": 1.0,
+          "precision@5": 0.2,
+          "ndcg@5": 1.0
+        },
+        "term": {
+          "hit@5": 1.0,
+          "mrr@5": 1.0,
+          "recall@5": 1.0,
+          "precision@5": 0.2,
+          "ndcg@5": 1.0
+        }
+      }
+    },
+    {
+      "config": "D_hybrid_rerank_rules (向量+BM25+Rerank+规则)",
+      "n": 15,
+      "overall": {
+        "hit@5": 1.0,
+        "mrr@5": 1.0,
+        "recall@5": 1.0,
+        "precision@5": 0.2,
+        "ndcg@5": 1.0
+      },
+      "latency": {
+        "mean_ms": 0.3,
+        "p50_ms": 0.3,
+        "p95_ms": 0.3,
+        "max_ms": 0.3
+      },
+      "by_type": {
+        "fact": {
+          "hit@5": 1.0,
+          "mrr@5": 1.0,
+          "recall@5": 1.0,
+          "precision@5": 0.2,
+          "ndcg@5": 1.0
+        },
+        "term": {
+          "hit@5": 1.0,
+          "mrr@5": 1.0,
+          "recall@5": 1.0,
+          "precision@5": 0.2,
+          "ndcg@5": 1.0
+        }
+      }
+    }
+  ],
+  "answer_metrics": {
+    "refusal_accuracy": 0.9375,
+    "judged": 15.0,
+    "relevance_mean": 5.0,
+    "accuracy_mean": 4.0,
+    "completeness_mean": 3.3333,
+    "groundedness_mean": 4.0,
+    "hallucination_rate": 0.3333
+  },
+  "judge": {
+    "judge_prompt_version": "v1",
+    "dimensions": [
+      "relevance",
+      "accuracy",
+      "completeness",
+      "groundedness"
+    ],
+    "calls": 15,
+    "errors": 0,
+    "parse_failures": 0
+  },
+  "eval_set_health": {
+    "problems": []
+  }
+}

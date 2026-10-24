@@ -684,7 +684,6 @@ class TestAgentCheckpointResume(unittest.TestCase):
     def test_resume_unfinished_continues_rounds(self):
         """中断在中间：续跑应从已有轮次继续，而不是从 0 开始。"""
         cp = InMemoryCheckpointer()
-        decisions = [{"tool": "kb_search", "args": {"query": "x"}}] * 4
 
         # 第一段：只允许 1 轮就停
         engine1, _ = build_engine(decisions=[{"tool": "kb_search", "args": {"query": "x"}}],
