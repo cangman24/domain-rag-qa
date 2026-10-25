@@ -3,7 +3,7 @@
 > 面向**领域文档分散、术语密集、编号型号多**的场景：答案必须可溯源、检索必须可度量、调参必须可回归。
 > 混合检索（BM25 + 向量 + RRF 融合 + 交叉编码精排）、父子块双层索引、低置信拒答、引用溯源、逐层消融评测。
 >
-> **561 项单测零第三方依赖可跑（约 1 秒）**；评测报告带运行指纹与评测集哈希，**可复现**。
+> **561 项单测零第三方依赖可跑**（CI 单个测试 job 约 7 秒，含 checkout）；评测报告带运行指纹与评测集哈希，**可复现**。
 
 ![CI](https://github.com/cangman24/domain-rag-qa/actions/workflows/ci.yml/badge.svg) ![python](https://img.shields.io/badge/python-%3E%3D3.10-blue) ![tests](https://img.shields.io/badge/tests-561%20passing-brightgreen) ![deps](https://img.shields.io/badge/test%20deps-0-brightgreen) ![license](https://img.shields.io/badge/license-MIT-blue)
 
@@ -12,7 +12,7 @@
 ## 快速开始（5 分钟，无需 GPU / API Key / 任何第三方包）
 
 ```bash
-python -m unittest discover -s tests   # 561 项单测，约 1 秒（12 项因可选依赖跳过）
+python -m unittest discover -s tests   # 561 项单测，纯标准库零依赖（12 项因可选依赖跳过）
 python demos/demo_ingest.py            # 全流程：文件 → 父子块切分 → 双索引 → 混合检索 → Agent → 评测
 python demos/demo_agent2.py            # 六个 Agent 场景（脚本化决策，无需 API Key）
 ```
