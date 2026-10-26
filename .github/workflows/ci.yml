@@ -70,6 +70,22 @@ jobs:
           python -m unittest tests.test_judge_runner tests.test_eval_cli tests.test_agent -v
           python -m unittest tests.test_service tests.test_store tests.test_loaders_sse tests.test_ingest tests.test_cli tests.test_engineering_config -v
           python -m unittest tests.test_llm_stream tests.test_service_stream_tokens -v
+          python -m unittest tests.test_evidence_chain -v
+        shell: bash
+
+      # ★ 数字证据链：报告里的数字必须能自证语料版本与模型归属。
+      #   CI 上没有模型权重，reports/latest 缺失是常态 → 设成告警不阻塞。
+      - name: 数字证据链校验（reports/latest）
+        run: |
+          set +e
+          python tools/verify_evidence_chain.py reports/latest
+          code=$?
+          if [ "$code" -eq 0 ]; then
+            echo "::notice::数字证据链完整"
+          else
+            echo "::warning::证据链有缺口（code=$code）；本机 GPU 重跑评测后应恢复"
+          fi
+          exit 0
         shell: bash
 
       - name: 语法全库扫描（含 __init__.py 的 BOM 问题）
