@@ -16,7 +16,7 @@
 #   安装方式：
 #     pip install -e .              # 只装运行时最小集
 #     pip install -e ".[serve]"     # 加上 FastAPI
-#     pip install -e ".[ml,serve]"  # 全套（本机开发）
+#     pip install -e ".[core,ml,serve]"  # 全套（本机开发）
 #     pip install -e ".[dev]"       # 测试与工具
 # ---------------------------------------------------------------------------
 [build-system]

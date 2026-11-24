@@ -44,7 +44,7 @@ test-fast:  ## 快速跑一遍（静默模式，只看结果）
 demo:  ## 冒烟跑全部 6 个离线 demo（每个都应 exit 0）
 	@for d in demo_core demo_pipeline demo_eval demo_ingest demo_evalrun demo_service; do \
 	  printf "  %-18s " $$d; \
-	  if $(PY) demos/$$d.py > /dev/null 2>&1; then echo "OK"; else echo "FAIL"; fi; \
+	  if $(PY) demos/$$d.py > /dev/null; then echo "OK"; else echo "FAIL"; exit 1; fi; \
 	done
 
 # ------------------------------------------------------------------ 数据
@@ -87,7 +87,7 @@ grid:  ## chunk_size 网格搜索（找最优切分，用于回答"为什么选 
 	done
 
 # ------------------------------------------------------------------ 服务
-serve:  ## 启动 HTTP 服务（需 pip install -e ".[ml,serve]"）
+serve:  ## 启动 HTTP 服务（需 pip install -e ".[core,ml,serve]"）
 	$(PY2) -m kb_qa.server
 
 # ------------------------------------------------------------------ 质量

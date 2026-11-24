@@ -112,15 +112,25 @@ jobs:
 
   # ============================================================ demo 冒烟
   demos:
-    name: demo 冒烟（每个 demo 必须 exit 0）
-    runs-on: ubuntu-24.04
+    name: demo 冒烟（${{ matrix.os }}）
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.10"
 
+      - name: 通过 Makefile 运行 demo
+        if: runner.os == 'Linux'
+        run: make demo
+
       - name: 逐个运行 demo
+        if: runner.os == 'Windows'
+        shell: bash
         run: |
           set -e
           for d in demo_core demo_pipeline demo_eval demo_ingest demo_evalrun demo_service; do

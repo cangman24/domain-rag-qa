@@ -11,13 +11,25 @@
 
 ## 快速开始（5 分钟，无需 GPU / API Key / 任何第三方包）
 
-```bash
-python -m unittest discover -s tests   # 561 项单测，纯标准库零依赖（12 项因可选依赖跳过）
-python demos/demo_ingest.py            # 全流程：文件 → 父子块切分 → 双索引 → 混合检索 → Agent → 评测
-python demos/demo_agent2.py            # 六个 Agent 场景（脚本化决策，无需 API Key）
+在本仓库根目录执行。使用 Python 3.10 或 3.11，并给本仓库单独建一个 `.venv`，以隔离两个项目同名的 `core` 包。 Debian/Ubuntu 如缺少 `venv` 组件，可安装与 Python 版本匹配的 `python3-venv` 包。只做离线验收时，也可以在创建虚拟环境的命令中加上 `--without-pip`。
+
+```powershell
+# Windows PowerShell
+python -m venv .venv
+.\.venv\Scripts\python.exe -X utf8 -m unittest discover -s tests
+.\.venv\Scripts\python.exe -X utf8 demos/demo_ingest.py
 ```
 
-其余离线 demo：`demos/demo_core.py`（切分与 RRF 融合）、`demos/demo_pipeline.py`（检索链路与指标）、`demos/demo_eval.py`（检索层消融）、`demos/demo_evalrun.py`（一条命令产出可复现报告）、`demos/demo_service.py`（服务层 + CLI + SSE）。`make demo` 一键冒烟全部 6 个。
+```bash
+# Linux
+python3 -m venv .venv
+.venv/bin/python -X utf8 -m unittest discover -s tests
+.venv/bin/python -X utf8 demos/demo_ingest.py
+```
+
+主演示用离线替身跑通文件入库、混合检索、带引用回答和消融评测，报告写到 `reports/demo_ingest_ablation.md`。
+
+其余离线 demo：`demos/demo_core.py`（切分与 RRF 融合）、`demos/demo_pipeline.py`（检索链路与指标）、`demos/demo_eval.py`（检索层消融）、`demos/demo_evalrun.py`（一条命令产出可复现报告）、`demos/demo_service.py`（服务层 + CLI + SSE）。在装有 GNU Make 的 Linux 上，`make demo PY=".venv/bin/python -X utf8"` 可冒烟全部 6 个，任一失败都会返回非零。
 
 ## 解决什么问题
 
@@ -111,19 +123,22 @@ reports/             历次评测运行（运行指纹 + 消融表 + Badcase）�
 ## 接真模型（可选，需要 GPU + DeepSeek Key）
 
 ```bash
-conda create -n agent_rag --clone fieldai -y
-conda run -n agent_rag pip install "transformers==4.44.2" --force-reinstall --no-deps
-conda run -n agent_rag pip install -e ".[ml,serve]"
-export HF_ENDPOINT=https://hf-mirror.com        # bge-m3 与 bge-reranker-v2-m3 各约 2.2GB → models/
+source .venv/bin/activate                 # Windows PowerShell 可用 .\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[core,ml,serve]"
+cp .env.example .env                      # Windows PowerShell 同样支持 cp，填写 DEEPSEEK_API_KEY
 
-# 建库 → 问答 → 一条命令出可复现评测报告
-conda run -n agent_rag python -m kb_qa.cli ingest --docs data/raw
-conda run -n agent_rag python -m kb_qa.eval --eval-set data/eval/eval.jsonl --ablation --judge --k-list 5 3 10 --out reports
+huggingface-cli download BAAI/bge-m3 --local-dir models/bge-m3
+huggingface-cli download BAAI/bge-reranker-v2-m3 --local-dir models/bge-reranker-v2-m3
+
+# 建库 → 问答 → 输出可复现评测报告
+python -m kb_qa.cli ingest --docs data/raw
+python -m kb_qa.cli ask "工单复核流程是什么？"
+python -m kb_qa.eval --eval-set data/eval/eval.jsonl --ablation --judge --k-list 5 3 10 --out reports
 ```
 
-> `transformers` 必须锁 4.44.x：sentence-transformers / FlagEmbedding 尚不兼容 5.x（conda 克隆环境常自带 5.19.0，不降级会在加载模型时直接报错）。
+> `[core]` 提供向量库、LLM SDK 与 `.env` 加载依赖。`[ml]` 会按 `pyproject.toml` 安装兼容版本的 `transformers`。模型下载路径与 `.env.example` 的默认值一致。
 
-HTTP 服务：`pip install -e ".[serve]"` 后 `uvicorn kb_qa.server:app --port 8000`（或 `make serve`）。接口：`/health`、`/chat`、`/chat/stream`（SSE）、`/debug/retrieve`、`/debug/service`。
+完成上面的安装和建库后，运行 `python -m uvicorn kb_qa.server:app --port 8000` 启动 HTTP 服务。接口：`/health`、`/chat`、`/chat/stream`（SSE）、`/debug/retrieve`、`/debug/service`。
 
 ## 为什么这些逻辑能离线验证
 
