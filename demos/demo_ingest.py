@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """demo_ingest.py —— 全流程端到端演示：文件 -> 索引 -> Agent -> 评测。
 
-跑法：python demo_ingest.py
-输出：demo_ingest_output.txt
+从仓库根目录运行：python demos/demo_ingest.py
+输出：demos/demo_ingest_output.txt
 
 这是把前面所有模块串起来的"总装配"演示，也是 Day 6 要打包进仓库的主脚本：
 
@@ -18,7 +18,6 @@
 import io
 import json
 import os
-import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -36,7 +35,8 @@ from core.text import tokenize
 from core.vectorstore import l2_normalize
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-DOCS_DIR = os.path.join(ROOT, "data", "demo_docs")
+RUNTIME_DIR = os.path.join(ROOT, "data", "demo_ingest_runtime")
+DOCS_DIR = os.path.join(RUNTIME_DIR, "docs")
 OUT = []
 
 
@@ -71,7 +71,6 @@ def fake_embed_one(text):
 
 # ================================================================== 造语料
 def prepare_docs():
-    shutil.rmtree(DOCS_DIR, ignore_errors=True)
     os.makedirs(DOCS_DIR, exist_ok=True)
     files = {
         "01_检测技术要求.md": """# 技术要求
@@ -126,7 +125,7 @@ def prepare_docs():
 # ================================================================== 主流程
 banner("0. 准备演示语料")
 names = prepare_docs()
-log(f"已写入 {len(names)} 个文档到 data/demo_docs/：")
+log(f"已写入 {len(names)} 个文档到 demos/data/demo_ingest_runtime/docs/：")
 for n in names:
     log(f"  - {n}")
 
@@ -164,9 +163,9 @@ log(f"    {res.doc_text(sample_id)[:70]}...")
 
 # 落盘
 save_manifest(res, os.path.join(ROOT, "reports", "ingest_manifest.json"))
-save_chunks(res, os.path.join(ROOT, "data", "demo_chunks.json"))
+save_chunks(res, os.path.join(RUNTIME_DIR, "demo_chunks.json"))
 log()
-log("已写出 reports/ingest_manifest.json 与 data/demo_chunks.json")
+log("已写出 demos/reports/ingest_manifest.json 与 demos/data/demo_ingest_runtime/demo_chunks.json")
 
 # ------------------------------------------------------------------ 3 检索
 banner("3. 混合检索（pipeline）：BM25 + 向量 + RRF + Rerank")
@@ -224,7 +223,8 @@ def checklist_query(topic: str):
     """
     hits = res.bm25.search(f"验收 {topic}", top_k=2, min_score=0.3)
     return {"count": len(hits),
-            "items": [res.child_text(d) for d, _ in hits]}
+            "hits": [{"id": d, "heading_path": res.metadata_for(d).get("heading_path", ""),
+                      "text": res.doc_text(d)} for d, _ in hits]}
 
 
 @registry.tool(description="提交验收结论（有副作用，需人工确认）", sensitive=True)
@@ -246,17 +246,24 @@ ROUTE_TABLE = {
 decisions = [
     {"tool": "kb_search", "args": {"query": "端侧 推理 时延 200 毫秒"}},
     {"tool": "checklist_query", "args": {"topic": "材料"}},
-    {"final": "端侧推理时延要求不超过 200 毫秒、显存不超过 2GB [1]；"
-              "验收需提交精度报告、混淆矩阵与 Failure Case 分析 [2]。",
-     "citations": ["c1", "c2"]},
 ]
-cursor = {"i": 0}
+quotes = (
+    "推理时延在边缘设备上不宜超过 200 毫秒，显存占用不宜超过 2GB。",
+    "验收时需提交精度报告、混淆矩阵与 Failure Case 分析。",
+)
+sources = []
 
 
 def act_fn(state, allowed):
-    d = decisions[min(cursor["i"], len(decisions) - 1)]
-    cursor["i"] += 1
-    return d
+    if state.tool_calls < len(decisions):
+        return decisions[state.tool_calls]
+
+    # 离线生成使用预设话术，但引用必须来自实际检索的父块。
+    hits = [hit for entry in state.scratchpad if entry.get("ok")
+            for hit in entry["result"]["hits"]]
+    sources[:] = [next(hit for hit in hits if quote in hit["text"]) for quote in quotes]
+    return {"final": f"{quotes[0]} [1] {quotes[1]} [2]",
+            "citations": [source["id"] for source in sources]}
 
 
 engine = AgentEngine(
@@ -269,6 +276,8 @@ engine = AgentEngine(
     max_tool_calls=6,
 )
 run = engine.run("部署时延要求和验收要交什么材料？", thread_id="demo-e2e")
+if not run.state.finished or len(run.state.citations) != len(quotes):
+    raise RuntimeError(f"演示未返回可定位的引用：{run.error or run.state.stop_reason}")
 
 log(f"意图      = {run.state.task_type}")
 log(f"白名单    = {run.state.allowed_tools}")
@@ -284,6 +293,9 @@ for e in run.events:
         log(f"  [tool_result] {d['tool']} -> {cnt} 条")
     elif e["type"] == EventType.ANSWER:
         log(f"  [answer]      {d['text']}")
+        for number, (source, quote) in enumerate(zip(sources, quotes, strict=True), 1):
+            log(f"    [{number}] {source['id']} · {source['heading_path']}")
+            log(f"        {quote}")
     elif e["type"] == EventType.DONE:
         log(f"  [done]        rounds={d['rounds']} tool_calls={d['tool_calls']}")
 log()
@@ -344,7 +356,7 @@ health = validate_eval_set(items)
 log(f"评测集体检：{health['total']} 条（可答 {health['answerable']} / "
     f"不可答 {health['unanswerable']}），类型分布 {health['by_type']}")
 log(f"体检结果：{'通过' if health['ok'] else '有问题 ' + str(health['problems'])}")
-save_eval_set(items, os.path.join(ROOT, "data", "eval", "demo_ingest_eval.jsonl"))
+save_eval_set(items, os.path.join(RUNTIME_DIR, "demo_ingest_eval.jsonl"))
 log()
 
 reports = []
@@ -358,7 +370,7 @@ for c in ablation_configs(top_k=5, recall_k=20):
 write_report(reports[-1], os.path.join(ROOT, "reports", "demo_ingest_ablation.md"),
              extra_sections={"消融对比（四档配置）": render_ablation_table(reports)})
 log()
-log("详细报告 -> reports/demo_ingest_ablation.md")
+log("详细报告 -> demos/reports/demo_ingest_ablation.md")
 
 # ------------------------------------------------------------------ 收尾
 banner("★ 换成真模型后要改的东西")
@@ -378,4 +390,4 @@ log("""
 
 io.open(os.path.join(ROOT, "demo_ingest_output.txt"), "w",
         encoding="utf-8").write("\n".join(OUT))
-print("\n已写入 demo_ingest_output.txt")
+print("\n已写入 demos/demo_ingest_output.txt")

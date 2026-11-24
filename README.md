@@ -3,13 +3,13 @@
 > 面向**领域文档分散、术语密集、编号型号多**的场景：答案必须可溯源、检索必须可度量、调参必须可回归。
 > 混合检索（BM25 + 向量 + RRF 融合 + 交叉编码精排）、父子块双层索引、低置信拒答、引用溯源、逐层消融评测。
 >
-> **561 项单测零第三方依赖可跑**（CI 单个测试 job 约 7 秒，含 checkout）；评测报告带运行指纹与评测集哈希，**可复现**。
+> 核心链路和离线单测使用标准库。评测报告保留语料与评测集指纹。
 
-![CI](https://github.com/cangman24/domain-rag-qa/actions/workflows/ci.yml/badge.svg) ![python](https://img.shields.io/badge/python-%3E%3D3.10-blue) ![tests](https://img.shields.io/badge/tests-561%20passing-brightgreen) ![deps](https://img.shields.io/badge/test%20deps-0-brightgreen) ![license](https://img.shields.io/badge/license-MIT-blue)
+![CI](https://github.com/cangman24/domain-rag-qa/actions/workflows/ci.yml/badge.svg) ![python](https://img.shields.io/badge/python-%3E%3D3.10-blue) ![deps](https://img.shields.io/badge/test%20deps-0-brightgreen) ![license](https://img.shields.io/badge/license-MIT-blue)
 
 ---
 
-## 快速开始（5 分钟，无需 GPU / API Key / 任何第三方包）
+## 快速开始
 
 在本仓库根目录执行。使用 Python 3.10 或 3.11，并给本仓库单独建一个 `.venv`，以隔离两个项目同名的 `core` 包。 Debian/Ubuntu 如缺少 `venv` 组件，可安装与 Python 版本匹配的 `python3-venv` 包。只做离线验收时，也可以在创建虚拟环境的命令中加上 `--without-pip`。
 
@@ -27,9 +27,15 @@ python3 -m venv .venv
 .venv/bin/python -X utf8 demos/demo_ingest.py
 ```
 
-主演示用离线替身跑通文件入库、混合检索、带引用回答和消融评测，报告写到 `reports/demo_ingest_ablation.md`。
+主演示用标准库和离线替身跑通文件入库、混合检索、带引用回答和消融评测。运行后查看终端中的 `[answer]` 和 `[1]`、`[2]` 对应的文档片段。消融报告写到 `demos/reports/demo_ingest_ablation.md`，终端全文写到 `demos/demo_ingest_output.txt`。
 
-其余离线 demo：`demos/demo_core.py`（切分与 RRF 融合）、`demos/demo_pipeline.py`（检索链路与指标）、`demos/demo_eval.py`（检索层消融）、`demos/demo_evalrun.py`（一条命令产出可复现报告）、`demos/demo_service.py`（服务层 + CLI + SSE）。在装有 GNU Make 的 Linux 上，`make demo PY=".venv/bin/python -X utf8"` 可冒烟全部 6 个，任一失败都会返回非零。
+测试入口和当前验收状态见 [TASKS.md](TASKS.md)。在装有 GNU Make 的 Linux 上，`make demo PY=".venv/bin/python -X utf8"` 可冒烟全部 6 个离线演示。
+
+工具调用与轨迹回放见独立项目 [KB Agent Platform](https://github.com/cangman24/kb-agent-platform)。拆分前的源码与报告见 [原双项目仓库](https://github.com/cangman24/rag-eval-agent-platform)。
+
+### 独立体验离线 HTTP 问答
+
+在自己的虚拟环境运行 `python -m pip install -e ".[serve]"`，再运行 `python demos/serve_offline.py`。打开 [RAG API 文档](http://127.0.0.1:18000/docs) 调用 `POST /chat`。先试“端侧推理时延要求是多少？”，再看看返回的 `citations` 中各条来源和原文。服务使用演示语料与哈希嵌入，回答直接展示检索到的片段。若要在同一网页切换问答与 Agent 轨迹，可从 [KB Agent Platform](https://github.com/cangman24/kb-agent-platform) 的本机入口启动。
 
 ## 解决什么问题
 

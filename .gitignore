@@ -78,6 +78,7 @@ reports/ingest_manifest.json
 **/demos/reports/
 demos/data/demo_chunks.json
 demos/data/demo_docs/
+demos/data/demo_ingest_runtime/
 demos/data/demo_evalrun_docs/
 
 # IDE 配置
