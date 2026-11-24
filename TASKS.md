@@ -8,3 +8,4 @@
 | 待验证 | GitHub Actions | 本地已复验 Windows 和 Linux。远端 CI 以推送后的实际运行记录为准。 |
 | 待做 | 人工复核评测样本 | 抽检 gold 证据、问题歧义与越界标注，复核记录见 [评测说明](reports/README.md)。 |
 | 已验收 | 真实模型生成接入 | 2026-11-24 使用配置的 DeepSeek-V4.1-Flash 在演示语料上验证引用回答及 token SSE。入口为 python demos/serve_offline.py --llm。BGE 全量语料链路待后续验收。 |
+| 已验收 | 移植缺口修复 | 恢复字符串参数注解解析，迁回 4 个诊断命令。离线替身验证报告输出，真实 BGE 全量诊断待后续验收。 |

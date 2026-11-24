@@ -173,3 +173,16 @@ python -m kb_qa.eval --eval-set data/eval/eval.jsonl --ablation --judge --k-list
 ## License
 
 MIT，见 [LICENSE](LICENSE)。
+
+## 评测诊断工具
+
+以下命令从本仓库根目录运行，读取当前 BGE 索引和评测集。先按真模型章节建库。支持 `--help`，使用 `--out` 可以把结果写到指定文件。
+
+```powershell
+python tools/calibrate_threshold.py data/eval/eval.jsonl --out reports/threshold_calibration.json
+python tools/diagnose_refusal.py data/eval/eval.jsonl 5 --out reports/refusal_diagnosis.json
+python tools/diagnose_refusal2.py data/eval/eval.jsonl 5 --out reports/refusal_diagnosis2.json
+python tools/verify_prompt_fix.py data/eval/eval.jsonl --out reports/prompt_fix_check.json
+```
+
+阈值标定统计检索分数。其余命令会调用配置的真实模型，定向复测会先筛选检索命中 gold 却拒答的样本。拒答对照工具保留历史宽匹配口径，当前判断以 service 的 `refused` 字段为准。
