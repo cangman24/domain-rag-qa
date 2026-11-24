@@ -442,6 +442,8 @@ class TestRunEval(unittest.TestCase):
                            EvalRunConfig(out_dir=os.path.join(tmp, "out"),
                                          eval_set_path=es))
             self.assertEqual(res.manifest["eval_set"]["sha256"], file_sha256(es))
+            snapshot = os.path.join(res.out_dir, "eval_set.jsonl")
+            self.assertEqual(res.manifest["eval_set"]["snapshot_sha256"], file_sha256(snapshot))
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 

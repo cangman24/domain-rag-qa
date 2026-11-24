@@ -23,13 +23,13 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import sys
 import time
 from typing import Any, Callable, List, Optional
 
+from core.evidence import corpus_sha256
 from core.eval_runner import (
     EvalRunConfig, compare_runs, latest_run_dir, load_items_or_raise, run_eval,
 )
@@ -100,14 +100,7 @@ def _probe_corpus_fingerprint(docs_dir: str, chunks_file: str) -> dict:
     """
     out: dict = {"dir": docs_dir}
     if os.path.isdir(docs_dir):
-        files = sorted(f for f in os.listdir(docs_dir) if f.endswith(".md"))
-        h = hashlib.sha256()
-        for name in files:
-            with open(os.path.join(docs_dir, name), "rb") as fh:
-                h.update(name.encode("utf-8"))
-                h.update(fh.read())
-        out["doc_count"] = len(files)
-        out["content_sha256"] = h.hexdigest()[:16]
+        out["doc_count"], out["content_sha256"] = corpus_sha256(docs_dir)
     # 入索引篇数单独记：raw 目录里有文件 ≠ 它进了索引（本次就差 1 篇）
     if chunks_file and os.path.exists(chunks_file):
         try:

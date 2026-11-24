@@ -73,20 +73,9 @@ jobs:
           python -m unittest tests.test_evidence_chain -v
         shell: bash
 
-      # ★ 数字证据链：报告里的数字必须能自证语料版本与模型归属。
-      #   CI 上没有模型权重，reports/latest 缺失是常态 → 设成告警不阻塞。
+      # 索引不随仓库分发。可核对的证据失配时阻断 CI。
       - name: 数字证据链校验（reports/latest）
-        run: |
-          set +e
-          python tools/verify_evidence_chain.py reports/latest
-          code=$?
-          if [ "$code" -eq 0 ]; then
-            echo "::notice::数字证据链完整"
-          else
-            echo "::warning::证据链有缺口（code=$code）；本机 GPU 重跑评测后应恢复"
-          fi
-          exit 0
-        shell: bash
+        run: python tools/verify_evidence_chain.py reports/latest
 
       - name: 语法全库扫描（含 __init__.py 的 BOM 问题）
         run: |

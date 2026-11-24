@@ -42,7 +42,7 @@ python3 -m venv .venv
 
 ## 核心指标
 
-**真实语料消融**（83 篇领域文档 / 303 个块，评测集 119 条 / 99 条可答，本机 BGE-M3 嵌入 + bge-reranker-v2-m3 精排，RTX 3080 Ti；报告与运行指纹见 [`reports/latest/`](reports/latest/)）：
+**真模型检索消融**（83 篇领域文档 / 303 个块，评测集 119 条 / 99 条可答，本机 BGE-M3 嵌入 + bge-reranker-v2-m3 精排，RTX 3080 Ti；报告与运行指纹见 [`reports/latest/`](reports/latest/)）：
 
 | 配置 | Hit@5 | MRR@5 | NDCG@5 | P95 延迟 |
 |---|---|---|---|---|
@@ -51,16 +51,14 @@ python3 -m venv .venv
 | C + Reranker 精排 | **0.6970** | **0.5827** | **0.5874** | 211.7 ms |
 | D + 编号规则召回 | 0.6970 | 0.5827 | 0.5874 | 189.5 ms |
 
-**生成层**（LLM-as-Judge，99 条可答样本）：拒答正确率 **89.1%**、忠实度 **4.67 / 5**、幻觉率 **1.01%**。
+**生成层**（DeepSeek Chat 生成与评分，99 条可答样本参与评分）：拒答正确率 **89.1%**、忠实度 **4.67 / 5**、幻觉率 **1.01%**。
 
 > **D 档与 C 档五个指标完全相同** —— 规则召回在这 99 条上**零增益**，收益不能算到它头上；
 > 规则层保留是因为它服务于检索之外的场景，但在本评测集上就是没有贡献，如实记录。
 > 调参历史（Hit@5 0.35 → 0.70 的 5 次运行）在 [`reports/archive/`](reports/archive/)；
 > 旧报告无法自证语料与模型（详见该目录 README），数字一律以 `reports/latest/` 为准。
 
-**数字可自证**：`python tools/verify_evidence_chain.py reports/latest` ——
-校验索引语料与磁盘是否逐字一致、manifest 是否写明模型名、向量维度是否实测（1024）。
-manifest 里的 `model_info` 与 `corpus_fingerprint` 由运行时实测写入，不是手抄常量。
+**评测证据校验**使用 `python tools/verify_evidence_chain.py reports/latest`。脚本重算语料与评测集指纹，核对评测快照并读取模型记录。有本地索引时还会核对文本块与索引规模。干净检出会明确显示索引无法核验。数据来源与核验口径见 [评测报告说明](reports/README.md)。
 
 **同一套消融框架可离线复现**（哈希假嵌入，4 篇文档 / 18 条评测，用于验证框架本身能否拆开各模块贡献，`python demos/demo_ingest.py`）：Hit@5 0.875 → 1.0，MRR 0.62 → 0.93。
 
@@ -155,7 +153,7 @@ python -m kb_qa.eval --eval-set data/eval/eval.jsonl --ablation --judge --k-list
 
 ## 已知局限（如实声明）
 
-- 评测集 gold 标注由生成脚本自动定位，**大规模人工复核未完成**（存在循环论证风险，已在 reports 集体检中标注）
+- 83 篇语料中有 80 篇是固定种子生成的领域演示文档。评测问题和 gold 标注来自自动生成和配对，仍需人工复核证据块、问题歧义和越界样本。
 - 尚未做多租户隔离与增量更新（新文档入库需重建索引）
 - Dockerfile / docker-compose.yml 已编写并通过配置一致性测试，但未在本机构建过镜像
 - 未接入 RAGAs 等第三方评估框架（有意为之：自实现更可控且便于讲解）

@@ -27,7 +27,6 @@
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import time
@@ -35,6 +34,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
+from .evidence import file_sha256 as file_sha256
 from .evaluation import (
     EvalItem, EvalReport, load_eval_set, render_ablation_table,
     render_failure_cases, render_type_table, run_answer_eval,
@@ -43,17 +43,6 @@ from .evaluation import (
 
 
 # --------------------------------------------------------------------- 指纹
-def file_sha256(path: str, chunk: int = 1 << 20) -> str:
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        while True:
-            block = f.read(chunk)
-            if not block:
-                break
-            h.update(block)
-    return h.hexdigest()[:16]
-
-
 def new_run_id(prefix: str = "run") -> str:
     return f"{prefix}-{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
 
@@ -150,6 +139,21 @@ def run_eval(
         for p in health["problems"][:10]:
             say(f"   · {p}")
 
+    eval_meta: Dict[str, Any] = {
+        "n": health["total"],
+        "answerable": health["answerable"],
+        "unanswerable": health["unanswerable"],
+        "by_type": health["by_type"],
+    }
+    source = config.eval_set_path
+    if source and os.path.isfile(source) and load_eval_set(source) == list(items):
+        eval_meta["path"] = source
+        eval_meta["sha256"] = file_sha256(source)
+        try:
+            eval_meta["path_rel"] = os.path.relpath(source).replace(os.sep, "/")
+        except ValueError:
+            eval_meta["path_rel"] = os.path.basename(source)
+
     # ---------------- 检索消融 ----------------
     reports: List[EvalReport] = []
     for cfg in configs:
@@ -190,21 +194,6 @@ def run_eval(
                                          lambda i, a: {})
 
     # ---------------- manifest ----------------
-    eval_meta: Dict[str, Any] = {
-        "n": health["total"],
-        "answerable": health["answerable"],
-        "unanswerable": health["unanswerable"],
-        "by_type": health["by_type"],
-    }
-    if config.eval_set_path and os.path.exists(config.eval_set_path):
-        eval_meta["path"] = config.eval_set_path
-        eval_meta["sha256"] = file_sha256(config.eval_set_path)
-        # 报告里存相对路径：绝对路径会把本机目录结构写进交付物，
-        # 而且换机器后无法复现（报告是给别人看的）。
-        try:
-            eval_meta["path_rel"] = os.path.relpath(config.eval_set_path)
-        except ValueError:
-            eval_meta["path_rel"] = os.path.basename(config.eval_set_path)
 
     # ★ 合并顺序很重要：config.embedding_model 的默认值是 "unknown"，
     #   如果直接覆盖 ingest_meta，就会把建库时真实用的模型名冲掉
@@ -253,15 +242,13 @@ def run_eval(
         "eval_set_health": {"problems": health["problems"]},
     }
 
+    snapshot = os.path.join(run_dir, "eval_set.jsonl")
+    save_eval_set(items, snapshot)
+    eval_meta["snapshot_sha256"] = file_sha256(snapshot)
+
     manifest_path = os.path.join(run_dir, "eval_manifest.json")
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
-
-    # 评测集副本（保证"这份报告对应这一份评测集"）
-    try:
-        save_eval_set(items, os.path.join(run_dir, "eval_set.jsonl"))
-    except OSError:
-        pass
 
     # ---------------- 汇总报告 ----------------
     summary_path = os.path.join(run_dir, "SUMMARY.md")
@@ -422,7 +409,7 @@ def _write_summary(path: str, manifest: Dict[str, Any],
     lines.append("")
     lines.append("```bash")
     lines.append("# 本报告对应的完整参数见 eval_manifest.json")
-    lines.append("python -m rag1_knowledge_qa.eval --eval-set "
+    lines.append("python -m kb_qa.eval --eval-set "
                  f"{m['eval_set'].get('path_rel') or m['eval_set'].get('path', 'data/eval/eval.jsonl')} \\")
     lines.append("    --ablation --judge --out reports")
     lines.append("```")

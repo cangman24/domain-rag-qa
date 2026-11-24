@@ -126,12 +126,12 @@
 
 ## 五、评测集体检
 
-✅ 未发现问题。
+自动体检未发现结构问题。自动生成的问题和 gold 标注仍待人工复核，详见 [评测报告说明](../README.md)。
 
 ## 六、复现方式
 
 ```bash
 # 本报告对应的完整参数见 eval_manifest.json
-python -m rag1_knowledge_qa.eval --eval-set data\eval\eval.jsonl \
+python -m kb_qa.eval --eval-set data/eval/eval.jsonl \
     --ablation --judge --out reports
 ```

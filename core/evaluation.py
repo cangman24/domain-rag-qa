@@ -17,7 +17,7 @@ import json
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Sequence
+from typing import Iterator, Callable, Dict, List, Optional, Sequence
 
 from .metrics import (
     aggregate, all_retrieval_metrics, hallucination_rate, latency_stats,
@@ -60,7 +60,8 @@ def load_eval_set(path: str) -> List[EvalItem]:
     """读取 JSONL 或 JSON 评测集。"""
     if not os.path.exists(path):
         raise FileNotFoundError(f"评测集不存在: {path}")
-    text = open(path, "r", encoding="utf-8").read().strip()
+    with open(path, encoding="utf-8") as stream:
+        text = stream.read().strip()
     if not text:
         return []
     if path.endswith(".json") or text.startswith("["):
@@ -74,13 +75,17 @@ def load_eval_set(path: str) -> List[EvalItem]:
     return items
 
 
+def eval_set_lines(items: Sequence[EvalItem]) -> Iterator[str]:
+    for item in items:
+        yield json.dumps(item.to_dict(), ensure_ascii=False) + "\n"
+
+
 def save_eval_set(items: Sequence[EvalItem], path: str) -> None:
     parent = os.path.dirname(os.path.abspath(path))
     if parent:
         os.makedirs(parent, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
-        for it in items:
-            f.write(json.dumps(it.to_dict(), ensure_ascii=False) + "\n")
+        f.writelines(eval_set_lines(items))
 
 
 def validate_eval_set(items: Sequence[EvalItem]) -> Dict[str, object]:

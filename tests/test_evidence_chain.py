@@ -15,6 +15,8 @@ import uuid
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from core.evaluation import EvalItem, save_eval_set  # noqa: E402
+from core.evidence import corpus_sha256, file_sha256  # noqa: E402
 from tools.verify_evidence_chain import (  # noqa: E402
     check_corpus, check_model, main, verify,
 )
@@ -36,7 +38,7 @@ DOC_B = "# 标题B\n\n另一篇的内容。"
 def write_corpus(raw_dir: str, docs=None) -> None:
     os.makedirs(raw_dir, exist_ok=True)
     for name, text in (docs or {"a.md": DOC_A, "b.md": DOC_B}).items():
-        with open(os.path.join(raw_dir, name), "w", encoding="utf-8") as f:
+        with open(os.path.join(raw_dir, name), "w", encoding="utf-8", newline="\n") as f:
             f.write(text)
 
 
@@ -84,7 +86,7 @@ class TestCheckCorpus(unittest.TestCase):
         write_chunks(self.chunks)
         n_idx, n_cur, notes = check_corpus(self.chunks, self.raw)
         self.assertEqual((n_idx, n_cur), (2, 2))
-        self.assertTrue(any(n.startswith("✓ 内容逐字一致") for n in notes))
+        self.assertTrue(any(n.startswith("✓ 索引文本块均可在源文档中定位") for n in notes))
         self.assertFalse([n for n in notes if n.startswith("✗")])
 
     def test_whitespace_only_diff_is_not_drift(self):
@@ -93,7 +95,7 @@ class TestCheckCorpus(unittest.TestCase):
         write_chunks(self.chunks, {"a.md": DOC_A.replace("\n", "  \n\n"),
                                    "b.md": DOC_B})
         _, _, notes = check_corpus(self.chunks, self.raw)
-        self.assertTrue(any(n.startswith("✓ 内容逐字一致") for n in notes))
+        self.assertTrue(any(n.startswith("✓ 索引文本块均可在源文档中定位") for n in notes))
 
     def test_deleted_doc_is_reported(self):
         write_corpus(self.raw)
@@ -166,13 +168,87 @@ class TestVerify(unittest.TestCase):
         write_corpus(self.raw)
         write_chunks(self.chunks)
 
+        self.run = os.path.join(self.tmp, "run")
+        self.source = os.path.join(self.tmp, "eval.jsonl")
+        self.items = [EvalItem("q1", "哪一段？", ["a.md#0"], "第一段")]
+        self.snapshot = os.path.join(self.run, "eval_set.jsonl")
+        source_item = {**self.items[0].to_dict(), "note": "原始标注"}
+        with open(self.source, "w", encoding="utf-8", newline="\n") as stream:
+            stream.write(json.dumps(source_item, ensure_ascii=False) + "\n")
+        manifest = write_manifest(self.run, GOOD_MODEL)
+        save_eval_set(self.items, self.snapshot)
+        count, digest = corpus_sha256(self.raw, newline=b"\r\n")
+        with open(manifest, "r+", encoding="utf-8") as stream:
+            record = json.load(stream)
+            record["corpus_fingerprint"] = {
+                "doc_count": count, "content_sha256": digest,
+                "indexed_doc_count": count, "chunk_count": count,
+            }
+            record["eval_set"] = {
+                "n": len(self.items), "sha256": file_sha256(self.source, newline=b"\r\n"),
+            }
+            stream.seek(0)
+            json.dump(record, stream)
+            stream.truncate()
+
+    def verify_fixture(self):
+        return verify(self.run, self.chunks, self.raw, self.source)
+
     def test_complete_chain(self):
-        run = os.path.join(self.tmp, "run-1")
-        write_manifest(run, GOOD_MODEL)
-        code, res = verify(run, self.chunks, self.raw)
+        code, res = self.verify_fixture()
         self.assertEqual(code, 0)
         self.assertTrue(res["ok"])
+        self.assertEqual(res["status"], "passed")
         self.assertEqual(res["indexed_docs"], 2)
+
+    def test_missing_index_leaves_verified_fingerprints_and_pending_index(self):
+        os.remove(self.chunks)
+        code, res = self.verify_fixture()
+        self.assertEqual(code, 0)
+        self.assertFalse(res["ok"])
+        self.assertEqual(res["status"], "partial")
+        self.assertEqual(res["index_status"], "unavailable")
+        self.assertTrue(any("语料指纹匹配" in note for note in res["corpus"]))
+        self.assertTrue(any("原始评测集指纹匹配" in note for note in res["eval_set"]))
+
+    def test_appending_to_corpus_fails_without_an_index(self):
+        os.remove(self.chunks)
+        with open(os.path.join(self.raw, "a.md"), "a", encoding="utf-8") as stream:
+            stream.write("\n附加文字。")
+        code, res = self.verify_fixture()
+        self.assertEqual(code, 1)
+        self.assertEqual(res["status"], "failed")
+        self.assertTrue(any("语料指纹不匹配" in note for note in res["corpus"]))
+
+    def test_mutating_source_sample_fails_without_an_index(self):
+        os.remove(self.chunks)
+        with open(self.source, "r+", encoding="utf-8") as stream:
+            contents = stream.read()
+            stream.seek(0)
+            stream.write(contents.replace("原始标注", "不同标注"))
+            stream.truncate()
+        code, res = self.verify_fixture()
+        self.assertEqual(code, 1)
+        self.assertTrue(any("原始评测集指纹不匹配" in note for note in res["eval_set"]))
+
+    def test_mutating_legacy_snapshot_fails(self):
+        save_eval_set([EvalItem("q1", "改了的问题", ["a.md#0"])], self.snapshot)
+        code, res = self.verify_fixture()
+        self.assertEqual(code, 1)
+        self.assertTrue(any("快照与原始评测集" in note for note in res["eval_set"]))
+
+    def test_missing_recorded_snapshot_fails(self):
+        os.remove(self.snapshot)
+        code, res = self.verify_fixture()
+        self.assertEqual(code, 1)
+        self.assertTrue(any("报告缺少评测快照" in note for note in res["eval_set"]))
+
+    def test_index_count_mismatch_fails(self):
+        write_chunks(self.chunks, {"a.md": DOC_A})
+        code, res = self.verify_fixture()
+        self.assertEqual(code, 1)
+        self.assertEqual(res["index_status"], "failed")
+        self.assertTrue(any("索引篇数不匹配" in note for note in res["index"]))
 
     def test_missing_manifest_returns_two(self):
         code, res = verify(os.path.join(self.tmp, "nope"), self.chunks, self.raw)
