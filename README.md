@@ -37,6 +37,12 @@ python3 -m venv .venv
 
 在自己的虚拟环境运行 `python -m pip install -e ".[serve]"`，再运行 `python demos/serve_offline.py`。打开 [RAG API 文档](http://127.0.0.1:18000/docs) 调用 `POST /chat`。先试“端侧推理时延要求是多少？”，再看看返回的 `citations` 中各条来源和原文。服务使用演示语料与哈希嵌入，回答直接展示检索到的片段。若要在同一网页切换问答与 Agent 轨迹，可从 [KB Agent Platform](https://github.com/cangman24/kb-agent-platform) 的本机入口启动。
 
+### 使用配置的真实模型生成回答
+
+先在本仓库的虚拟环境执行 `python -m pip install "openai>=1.51,<2" python-dotenv`，并在被忽略的 `.env` 中配置 `DEEPSEEK_API_KEY`、`DEEPSEEK_BASE_URL` 和 `DEEPSEEK_MODEL`。
+
+运行 `python demos/serve_offline.py --llm` 后，打开 [本机接口文档](http://127.0.0.1:18000/docs)。本入口使用 4 篇演示文档与哈希嵌入检索，回答由配置的真实模型生成。完整 BGE 语料链路使用后文的真模型建库入口。
+
 ## 解决什么问题
 
 | # | 问题 | 方案 |

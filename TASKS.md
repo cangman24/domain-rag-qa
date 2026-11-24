@@ -7,3 +7,4 @@
 | 已验收 | 简历展示入口 | [项目主页](README.md) 提供主演示，[历史真模型报告](reports/latest/SUMMARY.md) 提供指标与运行口径。 |
 | 待验证 | GitHub Actions | 本地已复验 Windows 和 Linux。远端 CI 以推送后的实际运行记录为准。 |
 | 待做 | 人工复核评测样本 | 抽检 gold 证据、问题歧义与越界标注，复核记录见 [评测说明](reports/README.md)。 |
+| 已验收 | 真实模型生成接入 | 2026-11-24 使用配置的 DeepSeek-V4.1-Flash 在演示语料上验证引用回答及 token SSE。入口为 python demos/serve_offline.py --llm。BGE 全量语料链路待后续验收。 |
