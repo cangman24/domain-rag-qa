@@ -267,3 +267,10 @@ def app_factory() -> "FastAPI":
     """
     from kb_qa.bootstrap import build_production_service
     return build_app(build_production_service())
+
+
+def local_app_factory() -> "FastAPI":
+    """仅在本机使用 BGE 检索，返回片段与引用。"""
+    from kb_qa.bootstrap import build_production_service
+
+    return build_app(build_production_service(use_llm=False))

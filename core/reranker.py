@@ -4,10 +4,13 @@ import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 class BgeReranker:
-    def __init__(self, model_dir: str, device: str = None):
+    def __init__(self, model_dir: str, device: str = None, batch_size: int = 4):
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
+        if batch_size < 1:
+            raise ValueError("batch_size 必须至少为 1")
         self.device = device
+        self.batch_size = batch_size
         # ★ 同 embedder：保留权重路径，让"精排是否真加载"可被报告自证
         self.model_dir = model_dir
         self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
@@ -37,15 +40,16 @@ class BgeReranker:
         """
         if not pairs:
             return []
-        doc_ids = [doc_id for doc_id, _ in pairs]
-        texts_p = [text for _, text in pairs]
-        texts_q = [query] * len(pairs)
-        enc = self.tokenizer(
-            texts_q, texts_p, padding=True, truncation=True, return_tensors="pt"
-        ).to(self.device)
-        scores = self.model(**enc).logits.squeeze(-1).cpu().numpy()
-        # ★ 用 doc_ids 而不是 texts_p 组装返回值
-        # ★ strict=True：模型输出的分数必须与入参 doc_ids 一一对应
-        scored = list(zip(doc_ids, scores.tolist(), strict=True))
+        scored = []
+        for offset in range(0, len(pairs), self.batch_size):
+            batch = pairs[offset:offset + self.batch_size]
+            doc_ids = [doc_id for doc_id, _ in batch]
+            texts_p = [text for _, text in batch]
+            enc = self.tokenizer(
+                [query] * len(batch), texts_p,
+                padding=True, truncation=True, return_tensors="pt"
+            ).to(self.device)
+            scores = self.model(**enc).logits.squeeze(-1).cpu().numpy()
+            scored.extend(zip(doc_ids, scores.tolist(), strict=True))
         scored.sort(key=lambda x: (-x[1], x[0]))
         return scored

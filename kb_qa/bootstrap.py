@@ -161,7 +161,7 @@ def build_or_load_index(embedder: Any):
     return result.bm25, result.vector_store, result.doc_text, result.stats
 
 
-def build_production_service() -> RagService:
+def build_production_service(use_llm: bool = True) -> RagService:
     """完整装配：embedder + reranker + 索引 + LLM + ServiceConfig。
 
     ★ 第一步就是加载 .env —— 这是「装配」的职责，不是某个入口的职责。
@@ -181,14 +181,14 @@ def build_production_service() -> RagService:
     )
 
     llm: Optional[LLMClient] = None
-    if os.environ.get("DEEPSEEK_API_KEY"):
+    if use_llm and os.environ.get("DEEPSEEK_API_KEY"):
         llm = LLMClient(
             api_key=os.environ["DEEPSEEK_API_KEY"],
             base_url=env("DEEPSEEK_BASE_URL"),
             model=env("DEEPSEEK_MODEL"),
             cache=DiskCache("data/cache/llm"),
         )
-    else:
+    elif use_llm:
         print("[warn] 未设置 DEEPSEEK_API_KEY -> 走无 LLM 降级模式（只回检索片段）")
 
     svc = RagService(

@@ -186,3 +186,17 @@ python tools/verify_prompt_fix.py data/eval/eval.jsonl --out reports/prompt_fix_
 ```
 
 阈值标定统计检索分数。其余命令会调用配置的真实模型，定向复测会先筛选检索命中 gold 却拒答的样本。拒答对照工具保留历史宽匹配口径，当前判断以 service 的 `refused` 字段为准。
+
+## 本地 BGE 全量检索
+
+本仓库的 83 篇演示语料按默认参数可建立 303 个文本块。BGE-M3 输出 1024 维向量，嵌入和精排以小批次执行以控制显存占用。首次启动构建索引，后续复用 `data/vectors/` 中的文件。
+
+在已安装 BGE 与 HTTP 依赖的 RAG Python 环境中，可独立启动完全本地的接口：
+
+```powershell
+python -m uvicorn kb_qa.api_fastapi:local_app_factory --factory --host 127.0.0.1 --port 20000
+```
+
+`GET /health` 应显示 `index_size=303` 与 `llm_configured=false`。用 `POST /chat` 提问病虫害巡检的采样距离、复核比例，查看返回片段中的 2 厘米、20% 及引用来源。天气预报问题应被拒答。此模式即使存在 API Key 也不会装配远程 LLM。
+
+本地权重与索引由忽略规则管理。历史报告的数字和指纹保留原记录，本次建库及检索检查没有重跑历史生成层评测。

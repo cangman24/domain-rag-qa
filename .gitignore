@@ -90,3 +90,6 @@ demos/data/demo_evalrun_docs/
 
 # 临时提交信息文件（提交后即删，避免误入库）
 _commit*.txt
+
+# 本机会话数据库及 SQLite WAL/SHM 文件
+data/app.db*
