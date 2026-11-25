@@ -237,3 +237,15 @@ jobs:
           else
             echo "✓ 无 >100KB 的文件被跟踪"
           fi
+
+
+  container-smoke:
+    name: 容器构建与离线冒烟
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: 构建运行时镜像
+        run: docker build -t domain-rag-qa:ci .
+      - name: 核对运行依赖与本地输入
+        run: |
+          docker run --rm --network none --entrypoint python domain-rag-qa:ci -c 'import os; from pathlib import Path; import torch, transformers; import kb_qa.api_fastapi; assert os.getuid() != 0; assert not Path(".env").exists(); print("container dependencies ready")'

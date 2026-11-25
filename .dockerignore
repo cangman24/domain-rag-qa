@@ -58,3 +58,9 @@ htmlcov/
 # 文档（README 已单独 COPY 用于打包元数据）
 *.md
 !README.md
+
+# 本机虚拟环境和运行数据库
+.venv/
+venv/
+build/
+data/app.db*

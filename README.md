@@ -167,7 +167,7 @@ python -m kb_qa.eval --eval-set data/eval/eval.jsonl --ablation --judge --k-list
 
 - 83 篇语料中有 80 篇是固定种子生成的领域演示文档。评测问题和 gold 标注来自自动生成和配对，仍需人工复核证据块、问题歧义和越界样本。
 - 尚未做多租户隔离与增量更新（新文档入库需重建索引）
-- Dockerfile / docker-compose.yml 已编写并通过配置一致性测试，但未在本机构建过镜像
+- CPU Docker 镜像已验证构建、非 root 启动、303 块本地检索和拒答。GPU 镜像与跨主机部署待验证
 - 未接入 RAGAs 等第三方评估框架（有意为之：自实现更可控且便于讲解）
 
 ## License
